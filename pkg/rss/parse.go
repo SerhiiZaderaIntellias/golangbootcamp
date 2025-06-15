@@ -4,7 +4,7 @@ import (
 	"encoding/xml"
 )
 
-func Parse(data []byte) (*Xml, error) {
+func parse(data []byte) (*Xml, error) {
 	var result Xml
 	err := xml.Unmarshal(data, &result)
 	return &result, err
@@ -15,5 +15,5 @@ func FetchAndParse(url string) (*Xml, error) {
 	if err != nil {
 		return nil, err
 	}
-	return Parse(b)
+	return parse(b)
 }
