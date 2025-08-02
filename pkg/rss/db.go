@@ -10,6 +10,10 @@ func StoreItems(db *sql.DB, items []Item) error {
 		_, err := db.Exec(`
 			INSERT INTO rss_items (title, link, description)
 			VALUES ($1, $2, $3)
+			ON CONFLICT (link) DO UPDATE SET
+				title = EXCLUDED.title,
+				description = EXCLUDED.description,
+				created_at = NOW()
 		`, item.Title, item.Link, item.Description)
 
 		if err != nil {

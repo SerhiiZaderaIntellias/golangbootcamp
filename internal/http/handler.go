@@ -6,15 +6,17 @@ import (
 	"strconv"
 
 	"github.com/SerhiiZaderaIntellias/golangbootcamp/pkg/rss"
+	"github.com/SerhiiZaderaIntellias/golangbootcamp/internal/worker"
 	"github.com/labstack/echo/v4"
 )
 
 type FeedHandler struct {
-	db *sql.DB
+	db   *sql.DB
+	pool *worker.Pool
 }
 
-func NewFeedHandler(db *sql.DB) *FeedHandler {
-	return &FeedHandler{db: db}
+func NewFeedHandler(db *sql.DB, pool *worker.Pool) *FeedHandler {
+	return &FeedHandler{db: db, pool: pool}
 }
 
 type FeedRequest struct {
@@ -27,17 +29,9 @@ func (h *FeedHandler) CreateFeed(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request"})
 	}
 
-	parsed, err := rss.FetchAndParse(req.URL)
-	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "failed to parse RSS"})
-	}
+	h.pool.Submit(req.URL)
 
-	err = rss.StoreItems(h.db, parsed.Channel[0].Items)
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
-	}
-
-	return c.JSON(http.StatusCreated, map[string]string{"status": "ok"})
+	return c.JSON(http.StatusAccepted, map[string]string{"status": "queued"})
 }
 
 func (h *FeedHandler) GetAllFeeds(c echo.Context) error {
