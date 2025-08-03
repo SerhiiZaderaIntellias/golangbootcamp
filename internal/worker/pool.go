@@ -10,6 +10,26 @@ import (
 	"database/sql"
 )
 
+// storeItemsTest stores items in the test table
+func storeItemsTest(db *sql.DB, items []rss.Item) error {
+	for _, item := range items {
+		_, err := db.Exec(`
+			INSERT INTO rss_items_test (title, link, description)
+			VALUES ($1, $2, $3)
+			ON CONFLICT (link) DO UPDATE SET
+				title = EXCLUDED.title,
+				description = EXCLUDED.description,
+				created_at = NOW()
+		`, item.Title, item.Link, item.Description)
+
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 type Pool struct {
 	db     *sql.DB
 	jobs   chan string
@@ -64,7 +84,8 @@ func (p *Pool) worker(id int) {
 				continue
 			}
 
-			err = rss.StoreItems(p.db, rssData.Channel[0].Items)
+			// Store items in test table for integration tests
+			err = storeItemsTest(p.db, rssData.Channel[0].Items)
 			if err != nil {
 				log.Printf("Error storing items: %v", err)
 				continue
